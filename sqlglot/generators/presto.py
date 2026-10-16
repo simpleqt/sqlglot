@@ -416,7 +416,11 @@ class PrestoGenerator(generator.Generator):
         ),
         exp.TimeToStr: lambda self, e: self.func("DATE_FORMAT", e.this, self.format_time(e)),
         exp.TimeToUnix: rename_func("TO_UNIXTIME"),
-        exp.ToChar: lambda self, e: self.func("DATE_FORMAT", e.this, self.format_time(e)),
+        exp.ToChar: lambda self, e: (
+            self.func("DATE_FORMAT", e.this, self.format_time(e))
+            if e.args.get("format")
+            else self.sql(exp.cast(e.this, exp.DType.VARCHAR))
+        ),
         exp.TryCast: transforms.preprocess([transforms.epoch_cast_to_ts]),
         exp.TsOrDiToDi: lambda self, e: (
             f"CAST(SUBSTR(REPLACE(CAST({self.sql(e, 'this')} AS VARCHAR), '-', ''), 1, 8) AS INT)"

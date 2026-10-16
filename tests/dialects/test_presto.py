@@ -1399,6 +1399,18 @@ MATCH_RECOGNIZE (
             },
         )
 
+    def test_to_char_without_format(self):
+        self.validate_all(
+            "CAST(ts AS VARCHAR)",
+            read={
+                "oracle": "TO_CHAR(ts)",
+            },
+            write={
+                "presto": "CAST(ts AS VARCHAR)",
+                "trino": "CAST(ts AS VARCHAR)",
+            },
+        )
+
     def test_signum(self):
         self.validate_all(
             "SIGN(x)",
