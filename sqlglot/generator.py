@@ -4335,6 +4335,18 @@ class Generator:
         return self.binary(expression, "^")
 
     def cast_sql(self, expression: exp.Cast, safe_prefix: str | None = None) -> str:
+        this = expression.this
+        rounds = expression.args.get("rounds")
+
+        # "rounds" records whether the source dialect rounds a fractional number to the nearest
+        # integer when casting it to an integer type (see CAST_TO_INT_ROUNDS); wrap the operand to
+        # preserve the source's result when the target dialect disagrees
+        if rounds is not None:
+            if rounds and not self.CAST_TO_INT_ROUNDS:
+                this = exp.Round(this=this)
+            elif not rounds and self.CAST_TO_INT_ROUNDS:
+                this = exp.Trunc(this=this)
+
         format_sql = self.sql(expression, "format")
         format_sql = f" FORMAT {format_sql}" if format_sql else ""
         to_sql = self.sql(expression, "to")
@@ -4343,7 +4355,7 @@ class Generator:
         action = f" {action}" if action else ""
         default = self.sql(expression, "default")
         default = f" DEFAULT {default} ON CONVERSION ERROR" if default else ""
-        return f"{safe_prefix or ''}CAST({self.sql(expression, 'this')} AS{to_sql}{default}{format_sql}{action})"
+        return f"{safe_prefix or ''}CAST({self.sql(this)} AS{to_sql}{default}{format_sql}{action})"
 
     # Base implementation that excludes safe, zone, and target_type metadata args
     def strtotime_sql(self, expression: exp.StrToTime) -> str:

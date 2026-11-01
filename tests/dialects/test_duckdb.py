@@ -2850,6 +2850,26 @@ class TestDuckDB(Validator):
             """SELECT CAST([[[1]]] AS INT[1][1][1])""",
         )
 
+        # DuckDB rounds a fractional value to the nearest integer when casting it to an integer
+        # type, but SQLite truncates towards zero, so the operand needs ROUND() to preserve the
+        # result. An operand that's already an integer doesn't need it.
+        self.validate_all(
+            "SELECT CAST(2.5 AS INT), CAST(-2.5 AS INT), CAST(1.7 AS INT), CAST(-1.7 AS INT)",
+            write={
+                "duckdb": "SELECT CAST(2.5 AS INT), CAST(-2.5 AS INT), CAST(1.7 AS INT), CAST(-1.7 AS INT)",
+                "sqlite": "SELECT CAST(ROUND(2.5) AS INTEGER), CAST(ROUND(-2.5) AS INTEGER), CAST(ROUND(1.7) AS INTEGER), CAST(ROUND(-1.7) AS INTEGER)",
+            },
+        )
+        self.validate_all(
+            "SELECT CAST(2 AS INT)",
+            write={"sqlite": "SELECT CAST(2 AS INTEGER)"},
+        )
+        # A column can't be wrapped safely: SQLite's ROUND() would corrupt integers > 2^53
+        self.validate_all(
+            "SELECT CAST(x AS INT)",
+            write={"sqlite": "SELECT CAST(x AS INTEGER)"},
+        )
+
     def test_encode_decode(self):
         self.validate_all(
             "ENCODE(x)",

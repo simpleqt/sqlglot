@@ -10839,6 +10839,17 @@ class Parser:
         if exp_class == exp.TryCast:
             kwargs["requires_string"] = self.dialect.TRY_CAST_REQUIRES_STRING
 
+        this = kwargs.get("this")
+        to = kwargs.get("to")
+        if (
+            isinstance(this, (exp.Literal, exp.Neg))
+            and this.is_number
+            and not this.is_int
+            and isinstance(to, exp.DataType)
+            and to.this in (exp.DataType.SIGNED_INTEGER_TYPES | exp.DataType.UNSIGNED_INTEGER_TYPES)
+        ):
+            kwargs["rounds"] = self.dialect.generator_class.CAST_TO_INT_ROUNDS
+
         return self.expression(exp_class(**kwargs))
 
     def _parse_json_value(self, json_path: bool = True) -> exp.JSONValue:

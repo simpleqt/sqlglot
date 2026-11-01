@@ -40,6 +40,10 @@ class Cast(Expression, Func):
         "safe": False,
         "action": False,
         "default": False,
+        # Whether the source dialect rounds a fractional number to the nearest integer when
+        # casting it to an integer type; only set by the parser for fractional number literals,
+        # see CAST_TO_INT_ROUNDS
+        "rounds": False,
     }
 
     @property

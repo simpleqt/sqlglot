@@ -109,6 +109,16 @@ class TestSQLite(Validator):
                         read={"": f"SELECT CAST({value} AS {dtype})"},
                     )
 
+        # SQLite truncates a fractional value towards zero when casting it to an integer type, but
+        # DuckDB rounds to the nearest integer, so the operand needs TRUNC() to preserve the result.
+        self.validate_all(
+            "SELECT CAST(2.5 AS INTEGER), CAST(-2.5 AS INTEGER), CAST(1.7 AS INTEGER), CAST(-1.7 AS INTEGER)",
+            write={
+                "sqlite": "SELECT CAST(2.5 AS INTEGER), CAST(-2.5 AS INTEGER), CAST(1.7 AS INTEGER), CAST(-1.7 AS INTEGER)",
+                "duckdb": "SELECT CAST(TRUNC(2.5) AS INT), CAST(TRUNC(-2.5) AS INT), CAST(TRUNC(1.7) AS INT), CAST(TRUNC(-1.7) AS INT)",
+            },
+        )
+
     def test_is_precedence(self):
         self.validate_identity("SELECT 'x' LIKE 'x' NOT LIKE '1'")
         for suffix in ("IN (0)", "BETWEEN 0 AND 0", "LIKE '0'", "GLOB '0'"):
@@ -964,7 +974,6 @@ class TestSQLite(Validator):
             "CREATE TRIGGER view_insert INSTEAD OF INSERT ON employee_view BEGIN INSERT INTO employees (id, name, department) VALUES (NEW.id, NEW.name, NEW.department) END",
             check_command_warning=True,
         )
-
 
     def test_is_operator_null_safe_comparison(self):
         # issue #8855: SQLite's IS / IS NOT is a null-safe equality against any
