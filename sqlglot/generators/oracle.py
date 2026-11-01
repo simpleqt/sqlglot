@@ -145,6 +145,19 @@ class OracleGenerator(generator.Generator):
     def offset_sql(self, expression: exp.Offset) -> str:
         return f"{super().offset_sql(expression)} ROWS"
 
+    def fetch_sql(self, expression: exp.Fetch) -> str:
+        count = expression.args.get("count")
+        # Oracle only accepts a single token or a parenthesized expression as
+        # the row count, e.g. `FETCH FIRST (5 + 1) ROWS ONLY` is valid while
+        # `FETCH FIRST 5 + 1 ROWS ONLY` fails with ORA-00933.
+        if count and not isinstance(
+            count, (exp.Literal, exp.Paren, exp.Func, exp.Identifier, exp.Placeholder)
+        ):
+            expression = expression.copy()
+            expression.set("count", exp.paren(count, copy=False))
+
+        return super().fetch_sql(expression)
+
     def queryoption_sql(self, expression: exp.QueryOption) -> str:
         option = self.sql(expression, "this")
         value = self.sql(expression, "expression")

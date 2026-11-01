@@ -607,6 +607,15 @@ class TestOracle(Validator):
                 "tsql": "SELECT * FROM t ORDER BY (SELECT NULL) OFFSET 0 ROWS FETCH FIRST 10 ROWS ONLY",
             },
         )
+        self.validate_all(
+            "SELECT * FROM t FETCH FIRST (5 + 1) ROWS ONLY",
+            read={
+                "postgres": "SELECT * FROM t LIMIT 5 + 1",
+                "duckdb": "SELECT * FROM t LIMIT 5 + 1",
+                "tsql": "SELECT TOP (5 + 1) * FROM t",
+            },
+        )
+        self.validate_identity("SELECT * FROM t FETCH FIRST (5 + 1) ROWS ONLY")
         self.validate_identity("CREATE OR REPLACE FORCE VIEW foo1.foo2")
         self.validate_identity("TO_TIMESTAMP('foo')")
         self.validate_identity(
